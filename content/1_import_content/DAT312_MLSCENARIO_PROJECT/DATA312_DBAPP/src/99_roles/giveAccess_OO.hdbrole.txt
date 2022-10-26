@@ -1,0 +1,11 @@
+/** #-role for the OO of the consuming container */
+{
+"role":{
+"name": "app::grantSELECTglobal#",
+"schema_privileges":[
+{
+"privileges_with_grant_option": ["SELECT", "EXECUTE"]
+}
+]
+}
+}

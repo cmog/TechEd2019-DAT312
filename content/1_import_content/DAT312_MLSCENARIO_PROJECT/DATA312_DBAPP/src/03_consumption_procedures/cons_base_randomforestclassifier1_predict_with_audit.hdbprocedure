@@ -1,0 +1,28 @@
+PROCEDURE cons_base_randomforestclassifier1_predict_with_audit( IN IP_ID INTEGER, 
+																	OUT PREDICT_RESULT TABLE ("ID" INTEGER, PREDICTION NVARCHAR(100), PRED_CONFIDENCE Double)
+	)
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    AS
+BEGIN
+	declare ACTIVE_VERSION double;
+	select MAX("MODEL_VERSION") INTO ACTIVE_VERSION from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY"
+			where "MODEL_NAME"='CUSTOMER CHURN' and "MODEL_TYPE"='RDT - BINARY CLASSIFICATION' group by "MODEL_NAME", "MODEL_TYPE";
+
+	lt_data_randomforestclassifier1_predict = select * from "HANAML::NEWCUSTOMERCHURN" WHERE "AccountID"= :IP_ID;
+	/* lt_model_randomforestclassifier1_predict = select * from "output.randomforestclassifier1_fit_ltmodelrandomforestclassifier1fit"; */
+    lt_model_randomforestclassifier1_predict=  SELECT "ROW_INDEX", "TREE_INDEX", "MODEL_CONTENT"  from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY" 
+    			WHERE "MODEL_NAME"='CUSTOMER CHURN' AND "MODEL_VERSION"=:ACTIVE_VERSION AND "MODEL_TYPE"='RDT - BINARY CLASSIFICATION'  ORDER BY "ROW_INDEX";
+ 
+CALL base_randomforestclassifier1_predict(	lt_data_randomforestclassifier1_predict => :lt_data_randomforestclassifier1_predict, 
+											lt_model_randomforestclassifier1_predict => :lt_model_randomforestclassifier1_predict, 
+											lt_fitted_randomforestclassifier1_predict => lt_fitted_randomforestclassifier1_predict);
+
+INSERT INTO "BASE_LOCAL_APPLYMONITORDATA.PREDICTION_AUDIT" select "ID", SCORE as "PREDICTION", CONFIDENCE as PRED_CONFIDENCE, 
+    															'CUSTOMER CHURN' as MODEL_NAME, :ACTIVE_VERSION as MODEL_VERSION, 'RDT - BINARY CLASSIFICATION' as MODEL_TYPE,   
+    															CURRENT_DATE as PREDICT_DATE , CURRENT_TIME as "PREDICT_TIME" from :lt_fitted_randomforestclassifier1_predict;
+
+PREDICT_RESULT = select "ID", SCORE as "PREDICTION", CONFIDENCE as PRED_CONFIDENCE from :lt_fitted_randomforestclassifier1_predict;
+/*TRUNCATE TABLE "output.randomforestclassifier1_predict_ltfittedrandomforestclassifier1predict"; 
+INSERT INTO "output.randomforestclassifier1_predict_ltfittedrandomforestclassifier1predict" SELECT * FROM :lt_fitted_randomforestclassifier1_predict;*/
+END;

@@ -1,0 +1,31 @@
+PROCEDURE cons_base_randomforestclassifier1_fit(
+	out lt_param_randomforestclassifier1_fit table ("PARAM_NAME" NVARCHAR(5000),"INT_VALUE" INT,"DOUBLE_VALUE" DOUBLE,"STRING_VALUE" NVARCHAR(5000)), 
+	out lt_model_randomforestclassifier1_fit table ("ROW_INDEX" INTEGER,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000)), 
+	out lt_var_importance_randomforestclassifier1_fit table ("VARIABLE_NAME" NVARCHAR(256),"IMPORTANCE" DOUBLE), 
+	out lt_oob_err_randomforestclassifier1_fit table ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE ), 
+	out lt_cm_randomforestclassifier1_fit table ("ACTUAL_CLASS" NVARCHAR(1000),"PREDICTED_CLASS" NVARCHAR(1000),	"COUNT" Double)
+)
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    AS
+BEGIN
+lt_data_randomforestclassifier1_fit = select * from "HANAML::CUSTOMERCHURN_TRAINSAMPLE";
+CALL base_randomforestclassifier1_fit(	lt_data_randomforestclassifier1_fit => :lt_data_randomforestclassifier1_fit, 
+											lt_param_randomforestclassifier1_fit => lt_param_randomforestclassifier1_fit, 
+											lt_model_randomforestclassifier1_fit => lt_model_randomforestclassifier1_fit, 
+											lt_var_importance_randomforestclassifier1_fit => lt_var_importance_randomforestclassifier1_fit, 
+											lt_oob_err_randomforestclassifier1_fit => lt_oob_err_randomforestclassifier1_fit, 
+											lt_cm_randomforestclassifier1_fit => lt_cm_randomforestclassifier1_fit);
+											
+TRUNCATE TABLE "output.randomforestclassifier1_fit_ltparamrandomforestclassifier1fit"; 
+INSERT INTO "output.randomforestclassifier1_fit_ltparamrandomforestclassifier1fit" SELECT * FROM :lt_param_randomforestclassifier1_fit;
+TRUNCATE TABLE "output.randomforestclassifier1_fit_ltmodelrandomforestclassifier1fit"; 
+INSERT INTO "output.randomforestclassifier1_fit_ltmodelrandomforestclassifier1fit" SELECT * FROM :lt_model_randomforestclassifier1_fit;
+TRUNCATE TABLE "output.randomforestclassifier1_fit_ltvarimportancerandomforestclassifier1fit"; 
+INSERT INTO "output.randomforestclassifier1_fit_ltvarimportancerandomforestclassifier1fit" SELECT * FROM :lt_var_importance_randomforestclassifier1_fit;
+TRUNCATE TABLE "output.randomforestclassifier1_fit_ltooberrrandomforestclassifier1fit"; 
+INSERT INTO "output.randomforestclassifier1_fit_ltooberrrandomforestclassifier1fit" SELECT * FROM :lt_oob_err_randomforestclassifier1_fit;
+TRUNCATE TABLE "output.randomforestclassifier1_fit_ltcmrandomforestclassifier1fit"; 
+INSERT INTO "output.randomforestclassifier1_fit_ltcmrandomforestclassifier1fit" SELECT * FROM :lt_cm_randomforestclassifier1_fit;
+
+END

@@ -1,0 +1,33 @@
+ID: DAT312_###_MLSCENARIO_PROJECT                 # MTA project ID, relevant when project is uploaded during DEPLOYMENT
+_schema-version: '2.1'
+version: 0.0.1
+
+modules:
+ - name: DATA312_###_DBAPP                        # DB application, relevant when project is DEPLOYED
+   type: hdb
+   path: DATA312_DBAPP
+   requires:
+    - name: hdi_db                                # RESOURCENAME within YAML
+      properties:
+        TARGET_CONTAINER: ~{hdi-container-name}   # determination of the name by parameter: hdi-container-name
+        key: LOGICAL_HDI_SCHEMA_NAME              # Logical schema name, unfortunately cannot be used as a logical name in workspace files
+    - name: OUTSIDE_OBJECTS_SERVICE-RESOURCENAME  # RESOURCENAME within YAML
+      group: SERVICE_REPLACEMENTS                 
+      properties:
+        key: LOGICAL_DATAACCESS_SERVICE           # LOGICAL ups name for reference in the project, e.g. *.hdbgrants
+        service: ~{the-service-name}              # Variable the-service-name from below resolved
+        
+resources:
+ - name: hdi_db                                   # RESOURCENAME within YAML
+   parameters:
+      config:
+         schema: DAT312_###_MLSCENARIO_DEV
+   properties:
+      hdi-container-name: ${service-name}
+   type: com.sap.xs.hdi-container
+ - name: OUTSIDE_OBJECTS_SERVICE-RESOURCENAME     # RESOURCENAME within YMAL, if parm service-name not defined, than this is pyhsical service-name
+   parameters:
+      service-name: DAT312_DATAACCESS_SERVICE     # specify external physical UPS name, if ommitted the Resource name above = physical name
+   properties:
+      the-service-name: ${service-name}           # get the name of the service (from above service-name: <name>) into the variable: the-service-name
+   type: org.cloudfoundry.existing-service

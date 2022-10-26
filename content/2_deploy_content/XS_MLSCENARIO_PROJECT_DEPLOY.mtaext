@@ -1,0 +1,11 @@
+ID: DAT312_###_MLSCENARIO_PROJECT-MTAEXT
+version: 0.0.1
+_schema-version: '3.1'
+extends: DAT312_###_MLSCENARIO_PROJECT     #MTA-FileName
+
+resources:
+ - name: hdi_db
+   parameters:
+      service-name: DAT312_###_MLSCENARIO_DEPLOYEDSCHEMA-Service
+      config:
+         schema: DAT312_###_MLSCENARIO_DEPLOYEDSCHEMA

@@ -1,0 +1,50 @@
+{
+  "LOGICAL_DATAACCESS_SERVICE":{
+    "object_owner":{
+      "global_roles" : [
+        {
+          "roles" : [ "AFL__SYS_AFL_AFLPAL_EXECUTE"]
+        }
+      ],
+      "schema_privileges":[  
+       
+         {  
+          "reference":"MLLAB_SOL",
+          "privileges_with_grant_option":["SELECT", "SELECT METADATA"]
+        },
+         {  
+          "reference":"_SYS_BI",
+          "privileges_with_grant_option":["SELECT"]
+        }
+		,
+         {  
+          "reference":"MLLAB_SHARE",
+          "privileges_with_grant_option":["SELECT", "SELECT METADATA"]
+        }
+      ]
+    },
+    "application_user":{
+    
+      "global_roles" : [
+        {
+          "roles" : [ "AFL__SYS_AFL_AFLPAL_EXECUTE"]
+        }
+      ],
+      "schema_privileges":[ 
+      
+        { 
+          "reference":"MLLAB_SOL",
+          "privileges_with_grant_option":["SELECT", "SELECT METADATA"]
+        },
+        { 
+          "reference":"MLLAB_SHARE",
+          "privileges_with_grant_option":["SELECT", "SELECT METADATA"]
+        },
+         {  
+          "reference":"_SYS_BI",
+          "privileges_with_grant_option":["SELECT"]
+        }
+      ]
+    }
+  }
+}

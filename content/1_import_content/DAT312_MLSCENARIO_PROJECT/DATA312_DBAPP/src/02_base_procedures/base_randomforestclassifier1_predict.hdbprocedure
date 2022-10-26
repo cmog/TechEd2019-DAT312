@@ -1,0 +1,35 @@
+PROCEDURE base_randomforestclassifier1_predict(
+	in lt_data_randomforestclassifier1_predict table (
+	"AccountID" INT, "ServiceType" VARCHAR(21), "ServiceName" VARCHAR(14), "DataAllowance_MB" INT, "VoiceAllowance_Minutes" INT, "SMSAllowance_N_Messages" INT, "DataUsage_PCT" DOUBLE, "DataUsage_PCT_PM" DOUBLE, "DataUsage_PCT_PPM" DOUBLE, 
+	"VoiceUsage_PCT" DOUBLE, "VoiceUsage_PCT_PM" DOUBLE, "VoiceUsage_PCT_PPM" DOUBLE, "SMSUsage_PCT" DOUBLE, "SMSUsage_PCT_PM" DOUBLE, "SMSUsage_PCT_PPM" DOUBLE, "Revenue_Month" DOUBLE, "Revenue_Month_PM" DOUBLE, "Revenue_Month_PPM" DOUBLE, 
+	"Revenue_Month_PPPM" DOUBLE, "ServiceFailureRate_PCT" DOUBLE, "ServiceFailureRate_PCT_PM" DOUBLE, "ServiceFailureRate_PCT_PPM" DOUBLE, "CustomerLifetimeValue_USD" DOUBLE, "CustomerLifetimeValue_USD_PM" DOUBLE, 
+	"CustomerLifetimeValue_USD_PPM" DOUBLE, "Device_Lifetime" INT, "Device_Lifetime_PM" INT, "Device_Lifetime_PPM" INT
+	), 
+	in lt_model_randomforestclassifier1_predict table ("ROW_INDEX" INT,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000)), 
+	out lt_fitted_randomforestclassifier1_predict table ("ID" INT,"SCORE" NVARCHAR(100),"CONFIDENCE" DOUBLE))
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    READS SQL DATA AS 
+BEGIN
+
+ /* Why *TBL_0_34D20F66_9E31_11E9_B1FE_ACDE48001122 ???*/
+ DECLARE PAL_RANDOM_FOREST_PARAM_TBL_0 TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+ DECLARE PAL_RANDOM_FOREST_FITTED_TBL_0 TABLE ("AccountID" INTEGER,	"SCORE" NVARCHAR(100),	"CONFIDENCE" Double );   
+
+
+ PAL_RANDOM_FOREST_MODEL_TBL_0 = SELECT * FROM :lt_model_randomforestclassifier1_predict;
+ PAL_RANDOM_FOREST_DATA_TBL_0 = SELECT * FROM :lt_data_randomforestclassifier1_predict;
+
+ :PAL_RANDOM_FOREST_PARAM_TBL_0.DELETE();
+ :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('THREAD_RATIO', NULL, 0.5, NULL),1);
+ :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('VERBOSE',0, NULL, NULL),2);
+ :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('HAS_ID',1, NULL, NULL),3);
+
+CALL "PAL::PAL_RANDOM_DECISION_TREES_PREDICT"(
+    :PAL_RANDOM_FOREST_DATA_TBL_0,
+    :PAL_RANDOM_FOREST_MODEL_TBL_0,
+    :PAL_RANDOM_FOREST_PARAM_TBL_0,
+    :PAL_RANDOM_FOREST_FITTED_TBL_0
+);
+lt_fitted_randomforestclassifier1_predict = SELECT "AccountID" as "ID", "SCORE", "CONFIDENCE" FROM :PAL_RANDOM_FOREST_FITTED_TBL_0;
+END

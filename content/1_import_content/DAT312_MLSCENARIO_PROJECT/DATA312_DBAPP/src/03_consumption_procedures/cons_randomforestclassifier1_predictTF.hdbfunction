@@ -1,0 +1,56 @@
+FUNCTION "cons_randomforestclassifier_predictTF"(IN PREDICT_ID_SET TABLE ("ID" INTEGER) )
+       RETURNS TABLE ("ID" INTEGER, PREDICTION NVARCHAR(100), PRED_CONFIDENCE Double)
+       LANGUAGE SQLSCRIPT 
+       SQL SECURITY INVOKER AS 
+BEGIN 
+    /*****************************
+        Write your function logic
+    ****************************/
+    /* Calc View doesn't like declared table variable
+    DECLARE lt_PAL_PARAMETER_TBL TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+       :lt_PAL_PARAMETER_TBL.INSERT(('THREAD_RATIO', NULL, 0.5, NULL),1);
+   :lt_PAL_PARAMETER_TBL.INSERT(('VERBOSE',0, NULL, NULL),2); 
+   Error: com.sap.hana.di.calculationview: Database error 7: : feature not supported: Modification of table variable is not supported in current SQLScript configuration: line 13 col 4
+   */
+   /* Now error:
+       Error: com.sap.hana.di.calculationview: Database error 129: : transaction rolled back by an internal error: Reached unreachable code [8201003]       at "src/customerchurn_v1/applyCV_customerchurn.hdbcalculationview" (0:0)
+    */
+    declare ACTIVE_VERSION double;
+    DECLARE lt_PAL_PARAMETER_TBL TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+    :lt_PAL_PARAMETER_TBL.INSERT(('THREAD_RATIO', NULL, 0.5, NULL),1);
+    :lt_PAL_PARAMETER_TBL.INSERT(('VERBOSE',0, NULL, NULL),2); 
+   /*	DECLARE "PARAM_NAME" VARCHAR(100) ARRAY;
+   	DECLARE "INT_VALUE" INTEGER ARRAY;
+   	DECLARE "DOUBLE_VALUE" DOUBLE ARRAY;
+   	DECLARE "STRING_VALUE" VARCHAR(100) ARRAY;
+	
+    PARAM_NAME[1] := 'THREAD_RATIO';
+    PARAM_NAME[2] := 'VERBOSE';
+    INT_VALUE[1] := NULL;
+    INT_VALUE[2] := 0;
+    DOUBLE_VALUE[1] := 0.5;   
+    DOUBLE_VALUE[2] := NULL;  
+    STRING_VALUE[1] := NULL;  
+    STRING_VALUE[2] := NULL;  
+    LT_PARMS = UNNEST(:PARAM_NAME, :INT_VALUE, :DOUBLE_VALUE, :STRING_VALUE) AS (PARAM_NAME, INT_VALUE, DOUBLE_VALUE, STRING_VALUE);*/
+   
+   	select MAX("MODEL_VERSION") INTO ACTIVE_VERSION from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY"
+			where "MODEL_NAME"='CUSTOMER CHURN' and "MODEL_TYPE"='RDT - BINARY CLASSIFICATION' group by "MODEL_NAME", "MODEL_TYPE";
+	lt_model_randomforestclassifier1_predict=  SELECT "ROW_INDEX", "TREE_INDEX", "MODEL_CONTENT"  from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY" 
+    			WHERE "MODEL_NAME"='CUSTOMER CHURN' AND "MODEL_VERSION"=:ACTIVE_VERSION AND "MODEL_TYPE"='RDT - BINARY CLASSIFICATION'  ORDER BY "ROW_INDEX";
+	 lt_data_randomforestclassifier1_predict_tmp= SELECT		
+			"AccountID", "ServiceType", "ServiceName", "DataAllowance_MB", "VoiceAllowance_Minutes", "SMSAllowance_N_Messages", "DataUsage_PCT", "DataUsage_PCT_PM", "DataUsage_PCT_PPM", "VoiceUsage_PCT", "VoiceUsage_PCT_PM", "VoiceUsage_PCT_PPM", "SMSUsage_PCT", 
+			"SMSUsage_PCT_PM", "SMSUsage_PCT_PPM", "Revenue_Month", "Revenue_Month_PM", "Revenue_Month_PPM", "Revenue_Month_PPPM", "ServiceFailureRate_PCT", "ServiceFailureRate_PCT_PM", "ServiceFailureRate_PCT_PPM", "CustomerLifetimeValue_USD", 
+			"CustomerLifetimeValue_USD_PM", "CustomerLifetimeValue_USD_PPM", "Device_Lifetime", "Device_Lifetime_PM", "Device_Lifetime_PPM"
+				from "HANAML::NEWCUSTOMERCHURN";
+    lt_data_randomforestclassifier1_predict= SELECT D.* from :lt_data_randomforestclassifier1_predict_tmp as D, :PREDICT_ID_SET as S WHERE D."AccountID"= S."ID";
+   
+  CALL "PAL::PAL_RANDOM_DECISION_TREES_PREDICT" (:lt_data_randomforestclassifier1_predict, :lt_model_randomforestclassifier1_predict, :lt_PAL_PARAMETER_TBL , lt_fitted_randomforestclassifier1_predict);
+  /*CALL base_randomforestclassifier1_predict(	lt_data_randomforestclassifier1_predict => :lt_data_randomforestclassifier1_predict, 
+											lt_model_randomforestclassifier1_predict => :lt_model_randomforestclassifier1_predict, 
+											lt_fitted_randomforestclassifier1_predict => lt_fitted_randomforestclassifier1_predict);*/
+  
+  /* Function RETURN Statement */
+  RETURN select "AccountID" as "ID", SCORE as "PREDICTION", CONFIDENCE as PRED_CONFIDENCE from :lt_fitted_randomforestclassifier1_predict;
+
+END;

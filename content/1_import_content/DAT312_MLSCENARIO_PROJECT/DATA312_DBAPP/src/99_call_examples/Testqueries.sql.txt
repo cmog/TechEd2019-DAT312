@@ -1,0 +1,136 @@
+2/**************************************************************************************************************************/
+/*** DAT312_###_MLSCENARIO_PROJECT-Testing ********************************************************************************/
+
+/*** EX2.2 -  STEP 1 FIT (Optional - as equal to generated Project)  */
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_FIT"(
+	LT_PARAM_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_MODEL_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_VAR_IMPORTANCE_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_OOB_ERR_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_CM_RANDOMFORESTCLASSIFIER1_FIT => ?
+);
+
+/*** EX2.2 -  STEP 2 Predict (Optional - as equal to generated Project)  */
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT"(LT_FITTED_RANDOMFORESTCLASSIFIER1_PREDICT => ?);
+
+
+/***************************************************************************************************************************/
+/*** EX2.2 - STEP 3 FIT AND DEBRIEF ***************************************************************************************/
+--- inspect debrief part of procedure BASE_RANDOMFORESTCLASSIFIER1_FIT_DEBRIEF;
+--- execute fit_debrief;
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_FIT_DEBRIEF"(
+	LT_PARAM_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_MODEL_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_VAR_IMPORTANCE_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_OOB_ERR_RANDOMFORESTCLASSIFIER1_FIT => ?,
+	LT_CM_RANDOMFORESTCLASSIFIER1_FIT => ?
+);
+
+-- Review Train- and Test-Confusion Matrix
+SELECT 
+	"MODEL_NAME",	"MODEL_VERSION",	"MODEL_TYPE",	"DATASAMPLE",	"ACTUAL_CLASS",	"PREDICTED_CLASS",	"COUNT"
+	FROM "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL.DEBRIEF_CLASSIFICATION_CONFUSION_MATRIX";
+
+-- Review Test-Debrief Statistics
+SELECT
+	"MODEL_NAME",	"MODEL_VERSION",	"MODEL_TYPE",	"DATASAMPLE",	"STAT_NAME",	"STAT_VALUE"
+	FROM "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL.DEBRIEF_STATISTICS";
+
+
+/*******************************************************************************************************************************/
+/*** EX2.2 - STEP 4 Flowgraph Batch Predict ************************************************************************************/
+-- Open cons_randomforestclassifier1_predict_batchFG.hdbflowgraph and review
+
+-- Run Flowgraph-Batch-Predic
+CALL "DAT312_###_MLSCENARIO_DEV"."cons_randomforestclassifier1_predict_batchFG_SP"();
+
+-- Inspect Flowgraph-Batch-Predict results
+select * from "DAT312_###_MLSCENARIO_DEV"."output.cons_rfc_predict_batchFG"
+
+
+
+/*********************************************************************************************************************************/
+/*** EX2.2 - STEP 5 TableFunction and CalcView Predict ***************************************************************************/
+-- review FUNCTION cons_randomforestclassifier_predictTF
+-- run TF
+DO 
+ begin
+ lt_predictdata= select "AccountID" as ID from "DAT312_###_MLSCENARIO_DEV"."HANAML::NEWCUSTOMERCHURN";
+ SELECT * FROM "DAT312_###_MLSCENARIO_DEV"."cons_randomforestclassifier_predictTF"(/*PREDICT_ID_SET <TABLE_TYPE>*/ :lt_predictdata);
+ end;
+ 
+-- open and review CalculationView cons_randomforestclassifier1_predict_CV
+-- Use DataPreview or Query Calcview
+SELECT TOP 30
+	"ID", 	"PREDICTION",	"PRED_CONFIDENCE"
+     FROM "DAT312_###_MLSCENARIO_DEV"."cons_randomforestclassifier1_predict_CV";
+     
+SELECT TOP 10
+	"ID", 	"PREDICTION",	"PRED_CONFIDENCE"
+     FROM "DAT312_###_MLSCENARIO_DEV"."cons_randomforestclassifier1_predict_CV"
+     Where "PREDICTION"=1;
+     
+SELECT count(*), "PREDICTION", 	AVG("PRED_CONFIDENCE") AS " Average PRED_CONFIDENCE"
+	FROM "DAT312_###_MLSCENARIO_DEV"."cons_randomforestclassifier1_predict_CV"
+	group by "PREDICTION";
+
+
+/************************************************************************************************************************************************************/
+/*** EX2.2 - STEP 6 Predict and Audit ***********************************************************************************************************************/
+-- Execute Predict-Audit Procedure with a series of customerIDs.
+-- CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 1,PREDICT_RESULT => ?);
+
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2001101,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2001106,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2001406,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000153,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000158,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000156,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000938,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2001110,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2001697,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000941,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000868,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000624,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000606,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000448,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000393,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000301,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000153,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000226,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000032,PREDICT_RESULT => ?);
+CALL "DAT312_###_MLSCENARIO_DEV"."CONS_BASE_RANDOMFORESTCLASSIFIER1_PREDICT_WITH_AUDIT"(IP_ID => /*<INTEGER>*/ 2000006,PREDICT_RESULT => ?);
+
+-- Track audited predicted values
+SELECT 
+	"ID",	"PREDICTION",	"PRED_CONFIDENCE",	"MODEL_NAME",	"MODEL_VERSION",	"MODEL_TYPE",	"PREDICT_DATE",	"PREDICT_TIME"
+	FROM "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL_APPLYMONITORDATA.PREDICTION_AUDIT";
+
+
+
+/**************************************************************************************************************************************************************************************/
+/*** EX2.2 - STEP 7 Monitor model performance comparing actual facts vs. predicted values *********************************************************************************************/
+--- fill overserved facts table with some data 
+INSERT INTO "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL_APPLYMONITORDATA.OBSERVED_FACTS"  
+	select "AccountID" as "ID", "ContractActivity" as  "OBSERVED_LABEL", CURRENT_DATE as "FACT_DATE" , CURRENT_TIME as FACT_TIME 
+	from "DAT312_###_MLSCENARIO_DEV"."HANAML::CUSTOMERCHURN_TESTSAMPLE"
+    where "AccountID" in ('2001101','2001106','2001406','2000153','2000158','2000156','2000938','2001110','2001697','2000941','2000868','2000624','2000606','2000448','2000393','2000301','2001153','2000226','2000032','2000006') ;
+    
+update   "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL_APPLYMONITORDATA.OBSERVED_FACTS" set "OBSERVED_LABEL"='1' where 	 "ID" in ('2001153','2000226','2000032','2000006') ;
+
+-- Execute the monitor model performance procedure
+-- What is the result6-OUTPUT for AUC?
+CALL "DAT312_###_MLSCENARIO_DEV"."MLOPS_MONITOR_CLASSIFICATION_MODEL_PERFORMANCE"();
+
+-- Has the model performance (here AUC-value) degraded compared to the model training AUC for the testsample?
+SELECT
+	"MODEL_NAME",	"MODEL_VERSION",	"MODEL_TYPE",	"DATASAMPLE",	"STAT_NAME",	"STAT_VALUE"
+	FROM "DAT312_###_MLSCENARIO_DEV"."BASE_LOCAL.DEBRIEF_STATISTICS";
+	
+	
+
+/******************************************************************************************************/
+/*** HELPER ***************************************************************************/
+select count(*),  "ContractActivity" from "DAT312_###_MLSCENARIO_DEV"."HANAML::CUSTOMERCHURN_TRAINSAMPLE" group by  "ContractActivity";
+
+ /* CALL SYS.GET_INSUFFICIENT_PRIVILEGE_ERROR_DETAILS ('<GUID in "insufficient privilege" error>', ?) */

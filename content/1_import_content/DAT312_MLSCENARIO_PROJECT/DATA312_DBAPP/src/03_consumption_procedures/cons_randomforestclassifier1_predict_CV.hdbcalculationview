@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Calculation:scenario xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Calculation="http://www.sap.com/ndb/BiModelCalculation.ecore" id="cons_randomforestclassifier1_predict_CV" applyPrivilegeType="NONE" dataCategory="CUBE" schemaVersion="3.0" outputViewType="Aggregation" cacheInvalidationPeriod="NONE" enforceSqlExecution="false" runWithInvokerPrivileges="true">
+<descriptions defaultDescription="applyCV_customerchurn"/>
+<localVariables/>
+<variableMappings/>
+<dataSources>
+  <DataSource id="HANAML::NEWCUSTOMERCHURN">
+    <resourceUri>HANAML::NEWCUSTOMERCHURN</resourceUri>
+  </DataSource>
+</dataSources>
+<calculationViews>
+  <calculationView xsi:type="Calculation:ProjectionView" id="ID_Projection">
+    <viewAttributes>
+      <viewAttribute id="ID"/>
+    </viewAttributes>
+    <calculatedViewAttributes/>
+    <restrictedViewAttributes/>
+    <input node="HANAML::NEWCUSTOMERCHURN">
+      <mapping xsi:type="Calculation:AttributeMapping" target="ID" source="AccountID"/>
+    </input>
+  </calculationView>
+  <calculationView xsi:type="Calculation:TableFunctionView" id="TableFunction_1" tableFunctionName="cons_randomforestclassifier_predictTF">
+    <viewAttributes/>
+    <calculatedViewAttributes/>
+    <restrictedViewAttributes/>
+    <input node="ID_Projection" tableParameterName="PREDICT_ID_SET">
+      <mapping xsi:type="Calculation:AttributeMapping" target="ID" source="ID"/>
+    </input>
+  </calculationView>
+</calculationViews>
+<logicalModel id="TableFunction_1">
+  <attributes>
+    <attribute id="ID" keepFlag="true" order="1" semanticType="empty" displayAttribute="false" attributeHierarchyActive="false">
+      <descriptions defaultDescription="Customer ID"/>
+      <keyMapping columnObjectName="TableFunction_1" columnName="ID"/>
+    </attribute>
+    <attribute id="PREDICTION" order="2" displayAttribute="false" attributeHierarchyActive="false">
+      <descriptions defaultDescription="PREDICTION"/>
+      <keyMapping columnObjectName="TableFunction_1" columnName="PREDICTION"/>
+    </attribute>
+  </attributes>
+  <calculatedAttributes/>
+  <baseMeasures>
+    <measure id="PRED_CONFIDENCE" order="3" aggregationType="sum" measureType="simple">
+      <descriptions defaultDescription="PRED_CONFIDENCE"/>
+      <measureMapping columnObjectName="TableFunction_1" columnName="PRED_CONFIDENCE"/>
+    </measure>
+  </baseMeasures>
+  <calculatedMeasures/>
+  <restrictedMeasures/>
+  <localDimensions/>
+</logicalModel>
+<layout>
+  <shapes>
+    <shape expanded="true" modelObjectName="Output" modelObjectNameSpace="MeasureGroup">
+      <upperLeftCorner x="185.33821034230232" y="112"/>
+    
+      <rectangleSize width="160"/>
+    </shape>
+    <shape expanded="true" modelObjectName="ID_Projection" modelObjectNameSpace="CalculationView">
+      <upperLeftCorner x="91.99999999999997" y="376.9999976158142"/>
+      <rectangleSize height="30" width="287"/>
+    </shape>
+  
+    <shape expanded="true" modelObjectName="TableFunction_1" modelObjectNameSpace="CalculationView">
+      <upperLeftCorner x="94.45519620416786" y="236.9999988079071"/>
+      <rectangleSize height="30" width="297"/>
+    </shape>
+  </shapes>
+</layout>
+</Calculation:scenario>

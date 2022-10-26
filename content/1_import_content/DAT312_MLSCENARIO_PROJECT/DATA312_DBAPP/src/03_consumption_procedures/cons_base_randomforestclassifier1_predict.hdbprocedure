@@ -1,0 +1,16 @@
+PROCEDURE cons_base_randomforestclassifier1_predict(
+	out lt_fitted_randomforestclassifier1_predict table ("ID" INT,"SCORE" NVARCHAR(100),"CONFIDENCE" DOUBLE))
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    AS
+BEGIN
+lt_data_randomforestclassifier1_predict = select * from "HANAML::NEWCUSTOMERCHURN";
+lt_model_randomforestclassifier1_predict = select * from "output.randomforestclassifier1_fit_ltmodelrandomforestclassifier1fit";
+
+CALL base_randomforestclassifier1_predict(	lt_data_randomforestclassifier1_predict => :lt_data_randomforestclassifier1_predict, 
+											lt_model_randomforestclassifier1_predict => :lt_model_randomforestclassifier1_predict, 
+											lt_fitted_randomforestclassifier1_predict => lt_fitted_randomforestclassifier1_predict);
+
+TRUNCATE TABLE "output.randomforestclassifier1_predict_ltfittedrandomforestclassifier1predict"; 
+INSERT INTO "output.randomforestclassifier1_predict_ltfittedrandomforestclassifier1predict" SELECT * FROM :lt_fitted_randomforestclassifier1_predict;
+END

@@ -1,0 +1,334 @@
+PROCEDURE base_randomforestclassifier1_fit_debrief(
+	/*** BASE - Procedure interface  **************************************/    
+	in lt_data_randomforestclassifier1_fit table (  
+	    "AccountID" INT, "ServiceType" VARCHAR(21), "ServiceName" VARCHAR(14), "DataAllowance_MB" INT, "VoiceAllowance_Minutes" INT, "SMSAllowance_N_Messages" INT, "DataUsage_PCT" DOUBLE, "DataUsage_PCT_PM" DOUBLE, "DataUsage_PCT_PPM" DOUBLE, 
+		"VoiceUsage_PCT" DOUBLE, "VoiceUsage_PCT_PM" DOUBLE, "VoiceUsage_PCT_PPM" DOUBLE, "SMSUsage_PCT" DOUBLE, "SMSUsage_PCT_PM" DOUBLE, "SMSUsage_PCT_PPM" DOUBLE, "Revenue_Month" DOUBLE, "Revenue_Month_PM" DOUBLE, "Revenue_Month_PPM" DOUBLE, 
+		"Revenue_Month_PPPM" DOUBLE, "ServiceFailureRate_PCT" DOUBLE, "ServiceFailureRate_PCT_PM" DOUBLE, "ServiceFailureRate_PCT_PPM" DOUBLE, "CustomerLifetimeValue_USD" DOUBLE, "CustomerLifetimeValue_USD_PM" DOUBLE, 
+		"CustomerLifetimeValue_USD_PPM" DOUBLE, "Device_Lifetime" INT, "Device_Lifetime_PM" INT, "Device_Lifetime_PPM" INT, "ContractActivity" VARCHAR(1) 	), 
+	/*** EXTENDED DEBRIEF Procedure interface **************************************/ 
+	in lt_data_randomforestclassifier1_score table (    
+		"AccountID" INT, "ServiceType" VARCHAR(21), "ServiceName" VARCHAR(14), "DataAllowance_MB" INT, "VoiceAllowance_Minutes" INT, "SMSAllowance_N_Messages" INT, "DataUsage_PCT" DOUBLE, "DataUsage_PCT_PM" DOUBLE, "DataUsage_PCT_PPM" DOUBLE, 
+		"VoiceUsage_PCT" DOUBLE, "VoiceUsage_PCT_PM" DOUBLE, "VoiceUsage_PCT_PPM" DOUBLE, "SMSUsage_PCT" DOUBLE, "SMSUsage_PCT_PM" DOUBLE, "SMSUsage_PCT_PPM" DOUBLE, "Revenue_Month" DOUBLE, "Revenue_Month_PM" DOUBLE, "Revenue_Month_PPM" DOUBLE, 
+		"Revenue_Month_PPPM" DOUBLE, "ServiceFailureRate_PCT" DOUBLE, "ServiceFailureRate_PCT_PM" DOUBLE, "ServiceFailureRate_PCT_PPM" DOUBLE, "CustomerLifetimeValue_USD" DOUBLE, "CustomerLifetimeValue_USD_PM" DOUBLE, 
+		"CustomerLifetimeValue_USD_PPM" DOUBLE, "Device_Lifetime" INT, "Device_Lifetime_PM" INT, "Device_Lifetime_PPM" INT, "ContractActivity" VARCHAR(1) 	), 
+	/*** BASE - Procedure interface  **************************************/  
+	out lt_param_randomforestclassifier1_fit table ("PARAM_NAME" NVARCHAR(5000),"INT_VALUE" INT,"DOUBLE_VALUE" DOUBLE,"STRING_VALUE" NVARCHAR(5000)), 
+	out lt_model_randomforestclassifier1_fit table ("ROW_INDEX" INTEGER,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000)), 
+	out lt_var_importance_randomforestclassifier1_fit table ("VARIABLE_NAME" NVARCHAR(256),"IMPORTANCE" DOUBLE), 
+	out lt_oob_err_randomforestclassifier1_fit table ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE ), 
+	out lt_cm_randomforestclassifier1_fit table ("ACTUAL_CLASS" NVARCHAR(1000),"PREDICTED_CLASS" NVARCHAR(1000),	"COUNT" Double)
+	
+	/*** EXTENDED DEBRIEF Procedure interface **************************************/ 
+	/*, 
+	out lt_statistics_randomforestclassifier1_fit table ("STAT_NAME" NVARCHAR(1000),"STAT_VALUE" NVARCHAR(1000))
+	*/
+	)
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    AS
+BEGIN
+    /*** BASE - Declaration of Variables **************************************/    
+    DECLARE PAL_RANDOM_FOREST_PARAM_TBL_0 TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+    
+    DECLARE PAL_RANDOM_FOREST_MODEL_TBL_0 TABLE("ROW_INDEX" INTEGER,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000));
+    DECLARE PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0 /*VARIABLE_IMPORTANCE*/ TABLE ("VARIABLE_NAME" NVARCHAR(48),	"IMPORTANCE" DOUBLE);
+    DECLARE PAL_RANDOM_FOREST_OOB_ERR_TBL_0 /*OUT_OF_BAG_ERROR*/ TABLE ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE );
+    DECLARE PAL_RANDOM_FOREST_CM_TBL_0 /*CONFUSION_MATRIX*/ TABLE ("ACTUAL_CLASS" NVARCHAR(100),	"PREDICTED_CLASS" NVARCHAR(100),	"COUNT" Double );
+    
+    /*** EXTENDED DEBRIEF - Declaration of Variables **************************************/ 
+    DECLARE lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0 TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+    DECLARE lt_PAL_RANDOM_FOREST_FITTED_TBL_0 TABLE ("AccountID" INTEGER,	"SCORE" NVARCHAR(100),	"CONFIDENCE" Double );
+    
+    DECLARE lt_PAL_AUC_ROC_TBL_0 TABLE ("ID" INTEGER, "FPR" DOUBLE, "TPR" DOUBLE);
+    DECLARE lt_PAL_AUC_STATS_TBL_0 TABLE ( "STAT_NAME"  NVARCHAR(100), "STAT_VALUE" DOUBLE);
+   
+    DECLARE lt_PAL_CF_MATRIX_TBL_0  TABLE ("ORIGINAL_LABEL" NVARCHAR(100),	"PREDICTED_LABEL" NVARCHAR(100),	"COUNT" Double );
+    DECLARE lt_PAL_CF_CLASSREPORT_TBL_0  TABLE (CLASS NVARCHAR(100), RECALL DOUBLE, "PRECISION" DOUBLE, F_MEASURE DOUBLE, SUPPORT INTEGER);
+    
+    /*** EXTENDED DEBRIEF II STATS - Declaration of Variables **************************************/ 
+    declare TP double;
+	declare TN double;
+	declare FP double;
+	declare FN double;
+	declare lv_accuracy double;
+	declare lv_recall double;
+	declare lv_specificity double;
+	declare lv_precision double;
+	declare lv_FPR double;
+	declare lv_FNR double;
+	declare lv_F1 double;
+	declare lv_MCC double;
+	declare lv_KI double;
+	declare VAL_AUC double;
+	declare lv_obsAcc double;
+	declare lv_class1_marginfreq double;
+	declare lv_class0_marginfreq double;
+	declare lv_expAcc double;
+	declare lv_KAPPA double;
+	
+	declare MODEL_VERSION_MAX double;
+    declare MODEL_VERSION_NEW double;
+    
+    
+     /*** BASE - Variable initialization  **************************************/
+     PAL_RANDOM_FOREST_DATA_TBL_0 = SELECT * FROM :lt_data_randomforestclassifier1_fit;
+
+	 /* Populating the Paramter Table Variable */  
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.DELETE();
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('HAS_ID',1,NULL,NULL),	1); --first column is the ID column;
+ 	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('DEPENDENT_VARIABLE',NULL,NULL,'ContractActivity'),2); --Target or dependent variable;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('ALLOW_MISSING_LABEL',NULL,0 ,NULL),3); --Target variable must not have missing values;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SEED',1234, NULL,NULL),		4);	--Use this see for repeatability;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('CATEGORICAL_VARIABLE', NULL, NULL, 'ContractActivity'),5); --Dep variable of type integer should be treated as CATEGORIAL;
+	  
+	  
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('TREES_NUM', 200, NULL,NULL),		6); --n.estimators/number of modeled decision trees;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('TRY_NUM', 8,  NULL, NULL),		7); -- max_features/max number of randomly selected splitting variables;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('NODE_SIZE', 1, NULL, NULL),8); -- min_samples_leaf/minimum number of records in a leaf;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('MAX_DEPTH', 20,    NULL, NULL),9); -- The maximum depth of each tree;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SPLIT_THRESHOLD', NULL, 0.0000001, NULL),10); -- If the improvement value of the best split is less than this value, the tree stops growing;
+      
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('CALCULATE_OOB', 1, NULL, NULL),11); --Indicates whether to calculate out-of-bag error;
+ 
+      --A possible setting for stratified sampling;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SAMPLE_FRACTION', NULL, 1 , NULL),12);--The fraction of data used for training;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('STRATA', NULL, 0.5 , '0'),13); --The class label and its proportion that this class occupies in the sampling data.;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('STRATA', NULL, 0.5 , '1'),14);
+      
+      -- A possible setting for prior probabilities for classification;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('PRIORS', NULL, 0.25 , '1'),15); -- The class label its prior probability in the data;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('PRIORS', NULL, 0.75 , '0'),16);
+      
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('THREAD_RATIO', NULL, 0.25 , NULL),17); --Use maximum of 25% of available threads;
+
+      /*** BASE - FIT call and fit result collection  **************************************/
+		CALL "PAL::PAL_RANDOM_DECISION_TREES"(
+    		:PAL_RANDOM_FOREST_DATA_TBL_0,
+    		:PAL_RANDOM_FOREST_PARAM_TBL_0,
+    		:PAL_RANDOM_FOREST_MODEL_TBL_0,
+    		:PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0,
+    		:PAL_RANDOM_FOREST_OOB_ERR_TBL_0,
+    		:PAL_RANDOM_FOREST_CM_TBL_0
+			);
+
+		lt_param_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_PARAM_TBL_0;
+		lt_model_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_MODEL_TBL_0;
+		lt_var_importance_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0;
+		lt_oob_err_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_OOB_ERR_TBL_0;
+		lt_cm_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_CM_TBL_0;
+
+
+	/*** EXTENDED DEBRIEF  **************************************/ 
+    PAL_RANDOM_FOREST_SCORE_DATA_TBL_0 = SELECT 
+    		"AccountID", "ServiceType", "ServiceName", "DataAllowance_MB", "VoiceAllowance_Minutes", "SMSAllowance_N_Messages", "DataUsage_PCT", "DataUsage_PCT_PM", "DataUsage_PCT_PPM", "VoiceUsage_PCT", "VoiceUsage_PCT_PM", "VoiceUsage_PCT_PPM", "SMSUsage_PCT", 
+			"SMSUsage_PCT_PM", "SMSUsage_PCT_PPM", "Revenue_Month", "Revenue_Month_PM", "Revenue_Month_PPM", "Revenue_Month_PPPM", "ServiceFailureRate_PCT", "ServiceFailureRate_PCT_PM", "ServiceFailureRate_PCT_PPM", "CustomerLifetimeValue_USD", 
+			"CustomerLifetimeValue_USD_PM", "CustomerLifetimeValue_USD_PPM", "Device_Lifetime", "Device_Lifetime_PM", "Device_Lifetime_PPM"
+    	FROM :lt_data_randomforestclassifier1_score;
+
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.DELETE();
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.INSERT(('THREAD_RATIO', NULL, 0.5, NULL),1);
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.INSERT(('VERBOSE',0, NULL, NULL),2);
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.INSERT(('HAS_ID',1, NULL, NULL),3);
+   
+    CALL "PAL::PAL_RANDOM_DECISION_TREES_PREDICT"(
+    	:PAL_RANDOM_FOREST_SCORE_DATA_TBL_0,
+    	:PAL_RANDOM_FOREST_MODEL_TBL_0,
+    	:lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0,
+    	:lt_PAL_RANDOM_FOREST_FITTED_TBL_0
+	);
+
+    --Select TOP 10 * from :lt_PAL_RANDOM_FOREST_FITTED_TBL_0;
+    --Select TOP 10 * from :lt_PAL_RANDOM_FOREST_FITTED_TBL_0 where SCORE=1;
+
+   /* Step AUC-ROC Calculation */
+    lt_PAL_AUC_scoredata= 
+          select O."AccountID" as "ID", O."ContractActivity" as "ORIGINAL_LABEL", 
+ 		      CASE 
+ 		      WHEN P."SCORE" = '1' Then P."CONFIDENCE" 
+ 		      ELSE 1-P."CONFIDENCE" END 
+ 		      as "PROBABILITY"
+		from :lt_data_randomforestclassifier1_score as O , :lt_PAL_RANDOM_FOREST_FITTED_TBL_0 as P
+		where O."AccountID"=P."AccountID";
+		--Select * from  :lt_PAL_AUC_scoredata;
+   
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.DELETE();
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.INSERT(('POSITIVE_LABEL', NULL, NULL, '1'),1);
+    --Select * from :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0;
+   
+    CALL  "PAL::PAL_AUC"(
+    			:lt_PAL_AUC_scoredata,
+    			:lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0,
+    			:lt_PAL_AUC_STATS_TBL_0,
+    			:lt_PAL_AUC_ROC_TBL_0
+    	    );
+    select 'Test-data AUC' as "NOTE", * from :lt_PAL_AUC_STATS_TBL_0 ;
+    --select * from :lt_PAL_AUC_ROC_TBL_0 ;
+  
+  
+    /* Calculate the confusion matrix and statistics on the test data */
+    lt_PAL_CF_scoredata= SELECT O."AccountID" as ID, 
+    		case when O."ContractActivity"=0 then '0'
+    		     when  O."ContractActivity"=1 then '1'
+    		     end 
+    		     as ORIGINAL_LABEL, 
+    		     P."SCORE" as PREDICTED_LABEL
+      from :lt_data_randomforestclassifier1_score as O , :lt_PAL_RANDOM_FOREST_FITTED_TBL_0 as P
+      where O."AccountID"=P."AccountID"; 
+    
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.DELETE();
+    :lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0.INSERT(('BETA',NULL,1,null),1); --F-BETA value;
+  
+    CALL  "PAL::PAL_CONFUSION_MATRIX"(
+    			:lt_PAL_CF_scoredata ,
+    			:lt_PAL_RANDOM_FOREST_SCOREDEBRIEF_PARAM_TBL_0,
+    			:lt_PAL_CF_MATRIX_TBL_0,
+    			:lt_PAL_CF_CLASSREPORT_TBL_0);
+    select 'Test-data CF' as "NOTE", * from :lt_PAL_CF_MATRIX_TBL_0;
+    select * from :lt_PAL_CF_CLASSREPORT_TBL_0;
+
+	/*** EXTENDED DEBRIEF II STATS - Calculation  **************************************/ 
+	--INPUTS :lt_PAL_CF_MATRIX_TBL_0, :lt_PAL_AUC_STATS_TBL_0
+    select SUM("COUNT") INTO TP from :lt_PAL_CF_MATRIX_TBL_0 where "ORIGINAL_LABEL"='1' and "PREDICTED_LABEL"='1';
+    select SUM("COUNT") INTO FP from :lt_PAL_CF_MATRIX_TBL_0 where "ORIGINAL_LABEL"='0' and "PREDICTED_LABEL"='1';
+    select SUM("COUNT") INTO TN from :lt_PAL_CF_MATRIX_TBL_0 where "ORIGINAL_LABEL"='0' and "PREDICTED_LABEL"='0';
+    select SUM("COUNT") INTO FN from :lt_PAL_CF_MATRIX_TBL_0 where "ORIGINAL_LABEL"='1' and "PREDICTED_LABEL"='0';
+    /* select :TP as TP, :FP as FP, :TN as TN, :FN as FN from "PAL::DUMMY" ;*/
+    
+      --	Accuracy: Percentage of total items classified correctly- (TP+TN)/(N+P)
+	lv_accuracy := (:TP + :TN) / (:TP + :TN + :FP + :FN);
+	-- Recall or Sensitivity or TPR (True Positive Rate): Number of items correctly identified as positive out of total true positives- TP/(TP+FN) 
+	-- Recall indicates how many of the failures were detected (Recall = TP / (TP + FN))
+	lv_recall := :TP / (:TP + :FN);
+	-- Specificity or TNR (True Negative Rate): Number of items correctly identified as negative out of total negatives- TN/(TN+FP) 
+	lv_specificity := :TN / (:TN + :FP);
+	-- Precision: Number of items correctly identified as positive out of total items identified as positive- TP/(TP+FP) 
+	-- Precision denotes the rate of false alarms (Precision = TP / (TP + FP) )
+	lv_precision := :TP / (:TP + :FP);
+	--False Positive Rate or Type I Error: Number of items wrongly identified as positive out of total true negatives- FP/(FP+TN) 
+	lv_FPR := :FP / (:FP+:FN);
+	-- False Negative Rate or Type II Error: Number of items wrongly identified as negative out of total true positives- FN/(FN+TP) 
+	lv_FNR := :FN / (:FN+:TP);
+	--F1 Score: It is a harmonic mean of precision and recall given by- F1 = 2*Precision*Recall/(Precision + Recall)
+	--  F1 considers both precision and recall rates and can give a more balanced view. 
+	--  F1 = 2 * ((Precision * Recall) / (Precision + Recall)) 
+	lv_F1 := ((2 * :lv_precision * :lv_recall) / (:lv_precision / :lv_recall));
+  
+	-- MCC
+	lv_MCC := ((:TP*:TN)-(:FP*:FN)) / SQRT ( (:TP+:FP) * (:TP+:FN) * (:TN+:FP) * (:TN+:FN));
+
+	-- Predictive Power (KI)
+	-- KI =  (Area of model performance on validation data (blue bump))/(Area of wizard model performance (green triangle)) = 2 * AUC – 1
+	select STAT_VALUE INTO VAL_AUC from :lt_PAL_AUC_STATS_TBL_0 ;
+	lv_KI := (2 * :VAL_AUC) - 1;
+	
+	-- KAPPA
+	lv_obsAcc := :lv_accuracy  ; /*:TP + :TN;*/
+    lv_class1_marginfreq := ((:TP + :FN) * (:TP + :FP)) / (:TP + :TN + :FP + :FN);
+    lv_class0_marginfreq := (:TN + :FP) * (:TN + :FN) / (:TP + :TN + :FP + :FN);
+    lv_expAcc := (:lv_class1_marginfreq + :lv_class0_marginfreq) / (:TP + :TN + :FP + :FN);
+    lv_KAPPA := (:lv_obsAcc - :lv_expAcc ) / (1 - :lv_expAcc );
+
+    /* select 'debug kappa' as "NOTE", 
+         :lv_obsAcc as "Observed Accuracy" 
+         , :lv_class1_marginfreq as "class 1 margin freq"
+         , :lv_class0_marginfreq as "class 0 margin freq"
+         , :lv_expAcc as "Expected Accuracy"
+                  , lv_KAPPA as KAPPA
+         from "PAL::DUMMY"; */
+  
+	-- DEBUG Report all stats
+    /* select 'Validation data custom stats' as "NOTE", 
+         :lv_accuracy as "Accuracy" 
+         , :lv_recall as "RECALL"
+         , :lv_specificity as "Specificity"
+         , :lv_precision as "Precision"
+         , :lv_FPR as FPR
+         , :lv_FNR as FNR
+         , :lv_F1 as "F1"
+         , :lv_MCC as MCC
+         , :lv_KI AS KI
+         , lv_KAPPA as KAPPA
+         from "PAL::DUMMY";*/
+    
+    /*** SAVE MODEL **************************************************************************************************/     
+   SELECT MAX("MAX_MODEL_VERSION") INTO MODEL_VERSION_MAX 
+   from (
+    select case when MAX("MODEL_VERSION") is NULL then 0.99 else MAX("MODEL_VERSION") END as "MAX_MODEL_VERSION"
+    		
+    		from  	(select "MODEL_VERSION","MODEL_NAME", "MODEL_TYPE" from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY" 
+    				where "MODEL_NAME"='CUSTOMER CHURN' and "MODEL_TYPE"='RDT - BINARY CLASSIFICATION' 
+    				UNION ALL
+    				SELECT NULL, ' ', ' ' from "PAL::DUMMY")
+    		group by "MODEL_NAME", "MODEL_TYPE"
+    		);
+    MODEL_VERSION_NEW:= TO_CHAR(IFNULL(:MODEL_VERSION_MAX, 0)) + 0.01; 
+  
+    INSERT INTO "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', RDT."ROW_INDEX", RDT."TREE_INDEX", RDT."MODEL_CONTENT", NULL, NULL, 
+              current_date, current_time 
+         from :PAL_RANDOM_FOREST_MODEL_TBL_0 as RDT;
+
+	/* select  "MODEL_NAME", "MODEL_VERSION", "MODEL_TYPE", "ROW_INDEX",  "TREE_INDEX", CAST("MODEL_CONTENT" as VARCHAR(5000)),  "MODEL_DATE" 
+       from "BASE_LOCAL.MLSCENARIO_MODELREPOSITORY" where "MODEL_VERSION"=:MODEL_VERSION_NEW;*/
+      
+  /*** SAVE DEBRIEF **************************************************************************************************/
+	--SAVE CLASSIFICATION DEBRIEF
+	--lt_P4 /*VARIABLE_IMPORTANCE*/ TABLE ("VARIABLE_NAME" NVARCHAR(40),	"IMPORTANCE" DOUBLE);
+	--lt_P5 /*OUT_OF_BAG_ERROR*/ TABLE ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE );
+	--lt_P6 /*CONFUSION_MATRIX (for classification only)*/
+/*	:PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0,
+    		:PAL_RANDOM_FOREST_OOB_ERR_TBL_0,
+    		:PAL_RANDOM_FOREST_CM_TBL_0
+ 	:lt_PAL_AUC_STATS_TBL_0,
+    			:lt_PAL_AUC_ROC_TBL_0
+ 	:lt_PAL_CF_MATRIX_TBL_0,
+    			:lt_PAL_CF_CLASSREPORT_TBL_0);*/
+	INSERT INTO "BASE_LOCAL.DEBRIEF_CLASSIFICATION_VARIABLE_IMPORTANCE" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TRAINSAMPLE',
+      T."VARIABLE_NAME", T."IMPORTANCE" from :PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0 as T;  
+	INSERT INTO "BASE_LOCAL.DEBRIEF_CLASSIFICATION_OUT_OF_BAG_ERROR" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TRAINSAMPLE',
+      T."TREE_INDEX", T."ERROR"  from :PAL_RANDOM_FOREST_OOB_ERR_TBL_0 as T;
+    INSERT INTO "BASE_LOCAL.DEBRIEF_CLASSIFICATION_CONFUSION_MATRIX" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TRAINSAMPLE',
+      T."ACTUAL_CLASS", T."PREDICTED_CLASS", T."COUNT"from :PAL_RANDOM_FOREST_CM_TBL_0 as T;
+    
+    INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', RDT."STAT_NAME", RDT."STAT_VALUE" 
+         from  :lt_PAL_AUC_STATS_TBL_0 as RDT;
+    INSERT INTO "BASE_LOCAL.DEBRIEF_CLASSIFICATION_ROC" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', RDT."ID", RDT."FPR",  RDT."TPR" 
+         from  	:lt_PAL_AUC_ROC_TBL_0 as RDT;
+    INSERT INTO "BASE_LOCAL.DEBRIEF_CLASSIFICATION_CONFUSION_MATRIX" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE',
+      T."ORIGINAL_LABEL", T."PREDICTED_LABEL", T."COUNT" from :lt_PAL_CF_MATRIX_TBL_0 as T; 
+    
+    -- :lt_PAL_CF_CLASSREPORT_TBL_0 ;
+   
+   INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'Accuracy', :lv_accuracy 
+         from  "PAL::DUMMY" as RDT;
+   INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'RECALL', :lv_recall 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'Specificity', :lv_specificity 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'Precision', :lv_precision 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'FPR', :lv_FPR 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'FNR', :lv_FNR 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'F1', :lv_F1 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'MCC', :lv_MCC 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'KI', :lv_KI 
+         from  "PAL::DUMMY" as RDT;
+         INSERT INTO "BASE_LOCAL.DEBRIEF_STATISTICS" select 'CUSTOMER CHURN',:MODEL_VERSION_NEW, 'RDT - BINARY CLASSIFICATION', 'TESTSAMPLE', 'KAPPA', :lv_KAPPA 
+         from  "PAL::DUMMY" as RDT;
+       /*      select 'Validation data custom stats' as "NOTE", 
+          as "Accuracy" 
+         , :lv_recall as "RECALL"
+         , :lv_specificity as "Specificity"
+         , :lv_precision as "Precision"
+         , :lv_FPR as FPR
+         , :lv_FNR as FNR
+         , :lv_F1 as "F1"
+         , :lv_MCC as MCC
+         , :lv_KI AS KI
+         , lv_KAPPA as KAPPA
+         from"PAL::DUMMY";*/
+
+END

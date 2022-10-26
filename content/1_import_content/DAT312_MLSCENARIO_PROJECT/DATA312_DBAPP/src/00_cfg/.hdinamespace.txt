@@ -1,0 +1,4 @@
+{
+    "name":    "PAL",
+    "subfolder": "ignore"
+}

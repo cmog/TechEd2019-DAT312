@@ -1,0 +1,39 @@
+context output {
+  entity randomforestclassifier1_fit_ltparamrandomforestclassifier1fit {
+      PARAM_NAME : String(5000);
+      INT_VALUE : Integer;
+      DOUBLE_VALUE : BinaryFloat;
+      STRING_VALUE : String(5000);
+  };
+
+  entity randomforestclassifier1_fit_ltmodelrandomforestclassifier1fit {
+      ROW_INDEX : Integer;
+      TREE_INDEX : Integer;
+      MODEL_CONTENT : String(5000);
+  };
+
+
+  entity randomforestclassifier1_fit_ltvarimportancerandomforestclassifier1fit {
+      VARIABLE_NAME : String(256);
+      IMPORTANCE : BinaryFloat;
+  };
+
+  entity randomforestclassifier1_fit_ltooberrrandomforestclassifier1fit {
+      TREE_INDEX : Integer;
+      ERROR : BinaryFloat;
+  };
+
+  entity randomforestclassifier1_fit_ltcmrandomforestclassifier1fit {
+      ACTUAL_CLASS : String(1000);
+      PREDICTED_CLASS : String(1000);
+      COUNT : BinaryFloat;
+  };
+  
+  entity randomforestclassifier1_predict_ltfittedrandomforestclassifier1predict {
+      ID: Integer;
+      SCORE : String(100);
+      CONFIDENCE : BinaryFloat;
+  };  
+  
+
+};

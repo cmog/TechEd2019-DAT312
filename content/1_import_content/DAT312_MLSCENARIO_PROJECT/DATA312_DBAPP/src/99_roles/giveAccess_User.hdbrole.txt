@@ -1,0 +1,13 @@
+/** #-role for the OO of the consuming container */
+/* Role, to grant access, execute to the consuming app tasks only */
+/* details to be worked out: object_privileges instead of global schema privileges */
+{
+"role":{
+"name": "app::grantSELECTglobal",
+"schema_privileges":[
+{
+"privileges": ["SELECT", "EXECUTE"]
+}
+]
+}
+}

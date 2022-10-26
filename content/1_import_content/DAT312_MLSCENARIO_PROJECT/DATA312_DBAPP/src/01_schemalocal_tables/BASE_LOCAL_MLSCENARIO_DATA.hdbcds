@@ -1,0 +1,135 @@
+/* CDS HANA prim types https://help.sap.com/viewer/09b6623836854766b682356393c6c416/2.0.03/en-US/cf394efd3fb4400f9c09d10315028515.html */
+/*****************************************************************************************************/
+context BASE_LOCAL {
+    /*
+    column table "DEBRIEF_CLASSIFICATION_VARIABLE_IMPORTANCE" (
+    "MODEL_NAME" NVARCHAR(100),  "MODEL_VERSION" DOUBLE, "MODEL_TYPE" NVARCHAR(100), DATASAMPLE NVARCHAR(100),            "VARIABLE_NAME" NVARCHAR(40),	"IMPORTANCE" DOUBLE);
+    */
+	entity DEBRIEF_CLASSIFICATION_VARIABLE_IMPORTANCE {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+    	"VARIABLE_NAME": String(100);
+	    "IMPORTANCE": BinaryFloat;
+		} technical configuration { column store; };
+	/*
+	column table "DEBRIEF_CLASSIFICATION_OUT_OF_BAG_ERROR" (
+       "MODEL_NAME" NVARCHAR(100), "MODEL_VERSION" DOUBLE, "MODEL_TYPE" NVARCHAR(100),  DATASAMPLE NVARCHAR(100),            "TREE_INDEX" INTEGER,	"ERROR" DOUBLE); 
+	*/
+	entity DEBRIEF_CLASSIFICATION_OUT_OF_BAG_ERROR {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+    	"TREE_INDEX": Integer;
+	    "ERROR": BinaryFloat;
+		} technical configuration { column store; };
+	/*
+       CREATE column table "DEBRIEF_CLASSIFICATION_CONFUSION_MATRIX" (
+            "MODEL_NAME" NVARCHAR(100), "MODEL_VERSION" DOUBLE, "MODEL_TYPE" NVARCHAR(100),  DATASAMPLE NVARCHAR(100),            "ACTUAL_CLASS" NVARCHAR(100),	"PREDICTED_CLASS" NVARCHAR(100),	"COUNT" Double); 
+     */ 	
+	entity DEBRIEF_CLASSIFICATION_CONFUSION_MATRIX {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+    	"ACTUAL_CLASS": String(1000);
+		"PREDICTED_CLASS": String(1000);
+	    "COUNT": BinaryFloat;
+		} technical configuration { column store; };
+	/*
+	CREATE column table "DEBRIEF_CLASSIFICATION_AUC" (
+ "MODEL_NAME" NVARCHAR(100),  "MODEL_VERSION" DOUBLE, "MODEL_TYPE" NVARCHAR(100), DATASAMPLE NVARCHAR(100),             "STAT_NAME" NVARCHAR(100), "STAT_VALUE" DOUBLE);
+	*/
+	/*	entity DEBRIEF_CLASSIFICATION_AUC {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+    	"STAT_NAME": String(1000);
+		"STAT_VALUE": BinaryFloat;
+		} technical configuration { column store; };*/
+	/*
+	CREATE column table "DEBRIEF_CLASSIFICATION_ROC" (
+ "MODEL_NAME" NVARCHAR(100), "MODEL_VERSION" DOUBLE, "MODEL_TYPE" NVARCHAR(100),  DATASAMPLE NVARCHAR(100),           "ID" INTEGER, "FPR" DOUBLE, "TPR" DOUBLE);
+	*/
+		entity DEBRIEF_CLASSIFICATION_ROC {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+    	"ID": Integer;
+		"FPR": BinaryFloat;
+	    "TPR": BinaryFloat;
+		} technical configuration { column store; };
+		
+	
+		entity DEBRIEF_STATISTICS {
+		"MODEL_NAME": String(1000);
+    	"MODEL_VERSION": BinaryFloat;
+    	"MODEL_TYPE": String(1000);
+    	"DATASAMPLE": String(1000);
+		"STAT_NAME": String(1000);
+    	"STAT_VALUE": String(1000);
+		} technical configuration { column store; };
+		
+		
+}
+
+
+
+/*****************************************************************************************************/
+
+context BASE_LOCAL_APPLYMONITORDATA {
+
+entity PREDICTION_AUDIT {
+        "ID": Integer;
+        PREDICTION: String(100);
+        PRED_CONFIDENCE: BinaryFloat ;
+        "MODEL_NAME": String(100);
+		"MODEL_VERSION": BinaryFloat ;
+    	"MODEL_TYPE": String(100);
+    	"PREDICT_DATE": LocalDate DEFAULT CURRENT_DATE ;
+	    "PREDICT_TIME": LocalTime  DEFAULT CURRENT_TIME;
+		} technical configuration {
+		 column store;
+
+};
+
+entity OBSERVED_FACTS {
+        "ID": Integer;
+        "OBSERVED_LABEL": String(100);
+        "FACT_DATE": LocalDate DEFAULT CURRENT_DATE ;
+	    "FACT_TIME": LocalTime  DEFAULT CURRENT_TIME;
+		} technical configuration {
+		 column store;
+
+};
+
+
+
+}
+
+
+
+
+/*****************************************************************************************************/
+/*
+ context BASE_LOCAL_DATA {
+
+	entity MLSCENARIO_LOCAL_MODELREPOSITORY2 {
+		"MODEL_VERSION": BinaryFloat ;
+    	"MODEL_TYPE": String(100);
+    	"ROW_INDEX": Integer;
+    	"TREE_INDEX": Integer;
+    	"MODEL_CONTENT": String(5000);
+    	"KEY": String(1000);
+	    "VALUE": String(1000);
+	    "MODEL_DATE": LocalDate DEFAULT CURRENT_DATE ;
+	    "MODEL_TIME": LocalTime  DEFAULT CURRENT_TIME;
+		} technical configuration {
+		 column store;
+
+};
+}*/

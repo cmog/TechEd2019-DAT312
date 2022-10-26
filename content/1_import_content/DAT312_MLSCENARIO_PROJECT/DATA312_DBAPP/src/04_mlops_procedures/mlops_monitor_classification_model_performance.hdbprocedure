@@ -1,0 +1,85 @@
+PROCEDURE mlops_monitor_classification_model_performance( )
+   LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   READS SQL DATA AS
+BEGIN
+   /*************************************
+       Write your procedure logic 
+   *************************************/
+     /*** _SYS_AFL - PROCS Used *******************************************************************************************************************/
+    -- "_SYS_AFL::PAL_CONFUSION_MATRIX" _SYS_AFL.PAL_CONFUSION_MATRIX
+    -- "_SYS_AFL::PAL_AUC" _SYS_AFL.PAL_AUC
+    
+     /* PAL Procecure Tables as Table Variables*****************************************************************************************************/
+    DECLARE lt_monitor_CF_IN TABLE("ID" INTEGER, "ORIGINAL_LABEL" NVARCHAR(100), "PREDICTED_LABEL" NVARCHAR(100));
+    DECLARE lt_monitor_AUC_IN TABLE(	"ID" INTEGER, "ORIGINAL_LABEL" NVARCHAR(100),	"CHURN_PROBABILITY" DOUBLE);
+    
+    DECLARE lt_monitor_CF_OUT_CFMATRIX TABLE("ORIGINAL_LABEL" NVARCHAR(100), "PREDICTED_LABEL" NVARCHAR(100), COUNT INTEGER);
+    DECLARE lt_monitor_CF_OUT_CFREPORT TABLE("CLASS" Nvarchar(100), RECALL DOUBLE, "PRECISION" DOUBLE, F_MEASURE DOUBLE, SUPPORT INTEGER);
+    
+    DECLARE lt_monitor_AUC_OUT_ROCdata TABLE ("ID" INTEGER, "FPR" DOUBLE, "TPR" DOUBLE);
+    DECLARE lt_monitor_AUC_OUT_AUCstats TABLE ( "STAT_NAME"  NVARCHAR(100), "STAT_VALUE" DOUBLE);
+    
+    DECLARE lt_PAL_PARAMETER_TBL TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+
+
+    /**** DATA **************************************************************************************************************************************/
+    /* lt_monitor_actuals= select "AccountID" as "ID", "ContractActivityLABEL"  FROM "HANAML::MONITOR_ACTUAL_CLASSIFICATION"; */   /* ,"ContractActivity" */
+    lt_monitor_actuals= select "ID", "OBSERVED_LABEL" as "ContractActivityLABEL"  FROM "BASE_LOCAL_APPLYMONITORDATA.OBSERVED_FACTS" ;
+    lt_monitor_predicted= select "ID" as "ID", "PREDICTION", "PRED_CONFIDENCE" from "BASE_LOCAL_APPLYMONITORDATA.PREDICTION_AUDIT";
+       /*  where     "MODEL_NAME", 	"MODEL_VERSION", 	"MODEL_TYPE", 	"PREDICT_DATE", 	"PREDICT_TIME" */
+    -- Optimize > select last prediction per ID;
+
+    
+    /**** MONITOR calls  ****************************************************************************************************************************/
+    /* Confusion Matrix ********************************/
+	:lt_monitor_CF_IN.DELETE();
+	lt_monitor_CF_IN = 	select O."ID", O."ContractActivityLABEL" as "ORIGINAL_LABEL", P."PREDICTION" as "PREDICTED_LABEL"
+		from :lt_monitor_actuals as O /*O=OBSERVED*/ , :lt_monitor_predicted as P
+		where O."ID"=P."ID";
+		Select * from :lt_monitor_CF_IN;
+		
+    /*** STEP: Prepare the Confusion Matrix algorithm parameter table **/
+    :lt_PAL_PARAMETER_TBL.DELETE();
+    :lt_PAL_PARAMETER_TBL.INSERT(('BETA', NULL, 1, NULL),	1); --stratified sample;
+
+     /*** STEP: Run Confusion Matrix algorithm **/
+    CALL "PAL::PAL_CONFUSION_MATRIX"(:lt_monitor_CF_IN, :lt_PAL_PARAMETER_TBL, :lt_monitor_CF_OUT_CFMATRIX, :lt_monitor_CF_OUT_CFREPORT);
+     select * from :lt_monitor_CF_OUT_CFREPORT;
+     select * from :lt_monitor_CF_OUT_CFMATRIX;
+
+    /*******************************************************************************************************************************/
+    /*** STEP: Validate model quality by comparing the area under curve (AUC) for trained- versus validate-partition resuls      ***/
+    /*** STEP: Create Input data structure for the PAL AUC procedure, combinig observed vs original behaviour       ***/
+    /***       For AUC calculation, the original label and the probability for the predicted positive label is required as input ***/
+            -- input ID, Original label, prob of positive label
+            -- Note, now CONFIDENCE needs to be transformed to a DOUBLE-format column;
+
+    :lt_monitor_AUC_IN.DELETE();
+	lt_monitor_AUC_IN =		select O."ID", O."ContractActivityLABEL" as "ORIGINAL_LABEL", 
+ 		      CASE 
+ 		      WHEN P."PREDICTION" = '1' Then TO_DOUBLE(P."PRED_CONFIDENCE") 
+ 		      ELSE 1-TO_DOUBLE(P."PRED_CONFIDENCE")  END 
+ 		      as "CHURN_PROBABILITY"
+		from :lt_monitor_actuals as O , :lt_monitor_predicted as P
+		where O."ID"=P."ID";
+		Select * from :lt_monitor_AUC_IN;
+
+   /*** STEP: Prepare the AUC procedure parameter table **/
+   :lt_PAL_PARAMETER_TBL.DELETE();
+   :lt_PAL_PARAMETER_TBL.INSERT(('POSITIVE_LABEL', NULL, NULL, '1'),1);
+   Select * from :lt_PAL_PARAMETER_TBL;
+   
+   CALL "PAL::PAL_AUC"(:lt_monitor_AUC_IN,:lt_PAL_PARAMETER_TBL,:lt_monitor_AUC_OUT_AUCstats , :lt_monitor_AUC_OUT_ROCdata);
+   --wrong : Only one class present in original label, ROC AUC is not defined in that case;
+   select * from :lt_monitor_AUC_OUT_AUCstats ;
+   select * from :lt_monitor_AUC_OUT_ROCdata ; 
+
+
+   /* Next STEP would be **************************************************************************************************************/
+   /* Run this e.g. daily and weekly and protocol into a set of monitor tables: confusion matrix, auc, ..... */
+   /* Based on the observed classification from 'this week' and the predicted classification from ' last week' for 'this week' */
+
+
+END

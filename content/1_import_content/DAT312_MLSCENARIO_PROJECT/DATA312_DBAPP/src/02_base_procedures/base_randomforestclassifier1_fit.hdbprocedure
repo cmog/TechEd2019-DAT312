@@ -1,0 +1,87 @@
+PROCEDURE base_randomforestclassifier1_fit(
+	in lt_data_randomforestclassifier1_fit table ( 
+        "AccountID" INT, "ServiceType" VARCHAR(21), "ServiceName" VARCHAR(14), "DataAllowance_MB" INT, "VoiceAllowance_Minutes" INT, "SMSAllowance_N_Messages" INT, "DataUsage_PCT" DOUBLE, "DataUsage_PCT_PM" DOUBLE, "DataUsage_PCT_PPM" DOUBLE, 
+		"VoiceUsage_PCT" DOUBLE, "VoiceUsage_PCT_PM" DOUBLE, "VoiceUsage_PCT_PPM" DOUBLE, "SMSUsage_PCT" DOUBLE, "SMSUsage_PCT_PM" DOUBLE, "SMSUsage_PCT_PPM" DOUBLE, "Revenue_Month" DOUBLE, "Revenue_Month_PM" DOUBLE, "Revenue_Month_PPM" DOUBLE, 
+		"Revenue_Month_PPPM" DOUBLE, "ServiceFailureRate_PCT" DOUBLE, "ServiceFailureRate_PCT_PM" DOUBLE, "ServiceFailureRate_PCT_PPM" DOUBLE, "CustomerLifetimeValue_USD" DOUBLE, "CustomerLifetimeValue_USD_PM" DOUBLE, 
+		"CustomerLifetimeValue_USD_PPM" DOUBLE, "Device_Lifetime" INT, "Device_Lifetime_PM" INT, "Device_Lifetime_PPM" INT, "ContractActivity" VARCHAR(1)	), 
+	out lt_param_randomforestclassifier1_fit table ("PARAM_NAME" NVARCHAR(5000),"INT_VALUE" INT,"DOUBLE_VALUE" DOUBLE,"STRING_VALUE" NVARCHAR(5000)), 
+	out lt_model_randomforestclassifier1_fit table ("ROW_INDEX" INTEGER,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000)), 
+	out lt_var_importance_randomforestclassifier1_fit table ("VARIABLE_NAME" NVARCHAR(256),"IMPORTANCE" DOUBLE), 
+	out lt_oob_err_randomforestclassifier1_fit table ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE ), 
+	out lt_cm_randomforestclassifier1_fit table ("ACTUAL_CLASS" NVARCHAR(1000),"PREDICTED_CLASS" NVARCHAR(1000),	"COUNT" Double)
+	/*, 
+	out lt_statistics_randomforestclassifier1_fit table ("STAT_NAME" NVARCHAR(1000),"STAT_VALUE" NVARCHAR(1000))
+	*/
+	)
+    LANGUAGE SQLSCRIPT
+    SQL SECURITY INVOKER
+    READS SQL DATA AS
+BEGIN
+/*** STEP1 - Declaration of Variables **************************************/    
+    DECLARE PAL_RANDOM_FOREST_PARAM_TBL_0 TABLE("PARAM_NAME" VARCHAR (100), 	"INT_VALUE" INTEGER, 	"DOUBLE_VALUE" DOUBLE, 	"STRING_VALUE" VARCHAR (100));
+    
+    DECLARE PAL_RANDOM_FOREST_MODEL_TBL_0 TABLE("ROW_INDEX" INTEGER,	"TREE_INDEX" INTEGER,	"MODEL_CONTENT" NVARCHAR(5000));
+    DECLARE PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0 /*VARIABLE_IMPORTANCE*/ TABLE ("VARIABLE_NAME" NVARCHAR(48),	"IMPORTANCE" DOUBLE);
+    DECLARE PAL_RANDOM_FOREST_OOB_ERR_TBL_0 /*OUT_OF_BAG_ERROR*/ TABLE ("TREE_INDEX" INTEGER,	"ERROR" DOUBLE );
+    DECLARE PAL_RANDOM_FOREST_CM_TBL_0 /*CONFUSION_MATRIX*/ TABLE ("ACTUAL_CLASS" NVARCHAR(100),	"PREDICTED_CLASS" NVARCHAR(100),	"COUNT" Double );
+    
+    /*
+    DECLARE PAL_RANDOM_FOREST_FITTED_TBL_0 TABLE ("ID" INTEGER,	"SCORE" NVARCHAR(100),	"CONFIDENCE" Double );
+    
+    DECLARE PAL_AUC_ROC_TBL_0 TABLE ("ID" INTEGER, "FPR" DOUBLE, "TPR" DOUBLE);
+    DECLARE lt_PAL_AUC_OUT_AUCstats TABLE ( "STAT_NAME"  NVARCHAR(100), "STAT_VALUE" DOUBLE);
+    DECLARE lt_PAL_CF_MATRIX  TABLE ("ORIGINAL_LABEL" NVARCHAR(100),	"PREDICTED_LABEL" NVARCHAR(100),	"COUNT" Double );
+    DECLARE lt_PAL_CF_CLASSREPORT  TABLE (CLASS NVARCHAR(100), RECALL DOUBLE, "PRECISION" DOUBLE, F_MEASURE DOUBLE, SUPPORT INTEGER);
+    */
+
+
+PAL_RANDOM_FOREST_DATA_TBL_0 = SELECT * FROM :lt_data_randomforestclassifier1_fit;
+
+	/* STEP Populating the Paramter Table Variable */  
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.DELETE();
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('HAS_ID',1,NULL,NULL),	1); --first column is the ID column;
+ 	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('DEPENDENT_VARIABLE',NULL,NULL,'ContractActivity'),2); --Target or dependent variable;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('ALLOW_MISSING_LABEL',NULL,0 ,NULL),3); --Target variable must not have missing values;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SEED',1234, NULL,NULL),		4);	--Use this see for repeatability;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('THREAD_RATIO', NULL, 0.25 , NULL),5); --Use maximum of 25% of available threads;
+	  
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('TREES_NUM', 200, NULL,NULL),		6); --n.estimators/number of modeled decision trees;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('TRY_NUM', 8,  NULL, NULL),		7); -- max_features/max number of randomly selected splitting variables;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('NODE_SIZE', 1, NULL, NULL),8); -- min_samples_leaf/minimum number of records in a leaf;
+	  :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('MAX_DEPTH', 20,    NULL, NULL),9); -- The maximum depth of each tree;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SPLIT_THRESHOLD', NULL, 0.0000001, NULL),10); -- If the improvement value of the best split is less than this value, the tree stops growing;
+      
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('CALCULATE_OOB', 1, NULL, NULL),11); --Indicates whether to calculate out-of-bag error;
+ 
+      --A possible setting for stratified sampling;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('SAMPLE_FRACTION', NULL, 1 , NULL),12);--The fraction of data used for training;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('STRATA', NULL, 0.5 , '0'),13); --The class label and its proportion that this class occupies in the sampling data.;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('STRATA', NULL, 0.5 , '1'),14);
+      
+      -- A possible setting for prior probabilities for classification;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('PRIORS', NULL, 0.25 , '1'),15); -- The class label its prior probability in the data;
+      :PAL_RANDOM_FOREST_PARAM_TBL_0.INSERT(('PRIORS', NULL, 0.75 , '0'),16);
+
+/* STEP Fit the RandomDecisionTrees Model */
+CALL "PAL::PAL_RANDOM_DECISION_TREES"(
+    :PAL_RANDOM_FOREST_DATA_TBL_0,
+    :PAL_RANDOM_FOREST_PARAM_TBL_0,
+    :PAL_RANDOM_FOREST_MODEL_TBL_0,
+    :PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0,
+    :PAL_RANDOM_FOREST_OOB_ERR_TBL_0,
+    :PAL_RANDOM_FOREST_CM_TBL_0
+);
+
+lt_param_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_PARAM_TBL_0;
+lt_model_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_MODEL_TBL_0;
+lt_var_importance_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_VAR_IMPORTANCE_TBL_0;
+lt_oob_err_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_OOB_ERR_TBL_0;
+lt_cm_randomforestclassifier1_fit = SELECT * FROM :PAL_RANDOM_FOREST_CM_TBL_0;
+
+/*
+lt_statistics_randomforestclassifier1_fit = SELECT * FROM :PAL_GRADIENT_BOOSTING_STATISTICS_TBL_0;
+lt_cv_randomforestclassifier1_fit = SELECT * FROM :PAL_GRADIENT_BOOSTING_CV_TBL_0;
+*/
+
+
+END

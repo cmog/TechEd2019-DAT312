@@ -1,0 +1,13 @@
+/** #-role for the OO of the consuming container */
+/* Role, to grant access, execute etc to MLOPS tasks only */
+/* details to be worked out: object_privileges instead of global schema privileges */
+{
+"role":{
+"name": "mlops::grantSELECT_EXECUTE_MLOPS",
+"schema_privileges":[
+{
+"privileges": ["SELECT", "EXECUTE"]
+}
+]
+}
+}

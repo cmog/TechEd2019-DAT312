@@ -1,0 +1,17 @@
+/*************************************/
+- build complete DAT312_###_MLSCENARIO_PROJECT-MTA, then export generated MTA-archive file (*.mtar)
+- copy MTA-archive file to D:\SAP\XSA_client\bin
+- copy "\\studentshare\DAT312\2_deploy_content\XS_MLSCENARIO_PROJECT_DEPLOY.mtaext" to D:\SAP\XSA_client\bin
+- edit the copied *.mtaext, replace ### by your student ID 000
+
+/*************************************/
+open console: cmd
+D:
+cd D:\SAP\XSA_client\bin
+
+-- xs login
+xs login -a https://cloudl000022.wdf.sap.corp:31030  -u DAT312WD_### -p Welcome19 –skip-ssl-validation
+
+-- xs deploy
+Xs deploy ./DAT312_###_MLSCENARIO_PROJECT_0.0.1.mtar -e ./XS_MLSCENARIO_PROJECT_DEPLOY.mtaext
+

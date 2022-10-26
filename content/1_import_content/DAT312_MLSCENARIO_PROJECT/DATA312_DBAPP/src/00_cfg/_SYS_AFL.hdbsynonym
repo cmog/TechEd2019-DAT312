@@ -1,0 +1,14 @@
+{
+  "PAL::PAL_RANDOM_DECISION_TREES_PREDICT": {},
+  "PAL::PAL_RANDOM_DECISION_TREES": {},
+  "PAL::PAL_AUC": {},
+  "PAL::PAL_PARTITION": {},
+  "PAL::PAL_CONFUSION_MATRIX": {},
+  "PAL::DUMMY": {
+    "target": {
+      "object": "DUMMY",
+      "schema": "SYS",
+      "database": "DAT410"
+    }
+  }
+}

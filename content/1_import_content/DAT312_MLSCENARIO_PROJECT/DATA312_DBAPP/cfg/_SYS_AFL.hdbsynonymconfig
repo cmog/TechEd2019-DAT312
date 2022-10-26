@@ -1,0 +1,32 @@
+{
+  "PAL::PAL_RANDOM_DECISION_TREES_PREDICT": {
+    "target": {
+      "object": "PAL_RANDOM_DECISION_TREES_PREDICT",
+      "schema": "_SYS_AFL"
+    }
+  },
+    "PAL::PAL_RANDOM_DECISION_TREES": {
+    "target": {
+      "object": "PAL_RANDOM_DECISION_TREES",
+      "schema": "_SYS_AFL"
+    }
+  },
+    "PAL::PAL_AUC": {
+    "target": {
+      "object": "PAL_AUC",
+      "schema": "_SYS_AFL"
+    }
+  },
+    "PAL::PAL_PARTITION": {
+    "target": {
+      "object": "PAL_PARTITION",
+      "schema": "_SYS_AFL"
+    }
+  },
+   "PAL::PAL_CONFUSION_MATRIX": { 
+   	"target": {
+      "object": "PAL_CONFUSION_MATRIX",
+      "schema": "_SYS_AFL"
+    }
+   }
+}

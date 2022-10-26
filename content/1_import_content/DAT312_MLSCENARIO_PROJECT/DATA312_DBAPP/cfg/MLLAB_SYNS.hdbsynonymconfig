@@ -1,0 +1,28 @@
+{
+  "HANAML::CUSTOMERCHURN_TRAINSAMPLE": {
+    "target": {
+      "object": "CUSTOMERCHURN_TRAINSAMPLE",
+      "schema": "MLLAB_SHARE"
+    }
+  },
+  "HANAML::CUSTOMERCHURN_TESTSAMPLE": {
+    "target": {
+      "object": "CUSTOMERCHURN_TESTSAMPLE",
+      "schema": "MLLAB_SHARE"
+    }
+  },
+  "HANAML::NEWCUSTOMERCHURN": {
+    "target": {
+      "object": "NEWCUSTOMERCHURN",
+      "schema": "MLLAB_SHARE"
+    }
+  }
+  ,
+  "HANAML::NEWCUSTOMERCHURN_ABT": {
+    "target": {
+      "object": "NEWCUSTOMER_CHURN_ABT",
+      "schema": "MLLAB_SHARE"
+    }
+  }
+
+}
